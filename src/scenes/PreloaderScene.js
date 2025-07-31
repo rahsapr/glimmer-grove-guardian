@@ -26,10 +26,16 @@ export default class PreloaderScene extends Phaser.Scene {
         this.load.image('tiles', 'assets/images/tilesets/tiles.png');
 
         // Load the character spritesheet, specifying its properties
-        this.load.spritesheet('player', 'assets/images/sprites/characters.png', {
-            frameWidth: 24,
-            frameHeight: 24,
-            spacing: 1 // Crucial: The 1px space between each frame
-        });
+// In src/scenes/PreloaderScene.js
+
+// ... inside the preload() function ...
+
+// Load the character spritesheet, specifying its properties
+this.load.spritesheet('player', 'assets/images/sprites/characters.png', {
+    frameWidth: 24,
+    frameHeight: 24,
+    margin: 1,      // <-- THE FIX: 1px margin around the whole sheet
+    spacing: 1      // <-- The 1px space between each frame
+});
     }
 }
