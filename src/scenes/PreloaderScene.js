@@ -36,6 +36,10 @@ this.load.spritesheet('player', 'assets/images/sprites/characters.png', {
     frameHeight: 24,
     margin: 1,      // <-- THE FIX: 1px margin around the whole sheet
     spacing: 1      // <-- The 1px space between each frame
+
 });
+
+this.load.audio('collect-coin', 'assets/audio/sfx/coin.wav');
+
     }
 }
