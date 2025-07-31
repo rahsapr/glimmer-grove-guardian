@@ -11,8 +11,9 @@ export default class GameScene extends Phaser.Scene {
         // Background
         this.add.image(0, 0, 'background').setOrigin(0, 0).setScale(2).setScrollFactor(0.25);
 
-        // Tilemap Setup
+        // --- Tilemap and Tileset creation ---
         const map = this.make.tilemap({
+            // The data is the same, defining the level layout
             data: [
                 [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
                 [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,156,-1,-1],
@@ -28,13 +29,16 @@ export default class GameScene extends Phaser.Scene {
             tileWidth: 18,
             tileHeight: 18
         });
-        
-        // Now that the 'tiles' key points to a pre-sliced spritesheet, this line works correctly.
-        const tileset = map.addTilesetImage('tiles');
+
+        // ** THE SECOND PART OF THE FIX **
+        // This line tells Phaser how to slice the 'tiles' image we loaded.
+        // It provides the tile dimensions, margin, and spacing.
+        const tileset = map.addTilesetImage('tiles', 'tiles', 18, 18, 1, 1);
+
         const worldLayer = map.createLayer(0, tileset, 0, 0);
         worldLayer.setScale(2);
         
-        // Set collisions on the ground tiles
+        // Set collisions ONLY on the ground tiles
         worldLayer.setCollisionBetween(0, 45);
 
         // Player
@@ -55,33 +59,38 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, map.widthInPixels * 2, map.heightInPixels * 2);
     }
     
-    // A single, cleaner function to handle all tile triggers
+    // This consolidated trigger function is clean and correct
     handleTileTrigger(player, tile) {
-        if (!tile) return;
+        if (!tile || !tile.layer) return;
+
+        // We only act on the tile once
+        const tileKey = `${tile.x}-${tile.y}`;
+        if (this.triggeredTiles && this.triggeredTiles[tileKey]) {
+            return;
+        }
+        if (!this.triggeredTiles) {
+            this.triggeredTiles = {};
+        }
+        this.triggeredTiles[tileKey] = true;
+
 
         switch (tile.index) {
             case 136: // Gem
-                this.collectGem(player, tile);
+                this.sound.play('collect-coin', { volume: 0.5 });
+                this.score++;
+                this.scoreText.setText('Gems: ' + this.score);
+                tile.layer.tilemapLayer.removeTileAt(tile.x, tile.y);
                 break;
             case 154: // Spike
-                this.playerHit(player, tile);
+                this.playerHit(player);
                 break;
             case 156: // Flag
-                this.playerWin(player, tile);
+                this.playerWin(player);
                 break;
         }
     }
 
-    collectGem(player, tile) {
-        if (tile.layer) {
-            this.sound.play('collect-coin', { volume: 0.5 });
-            this.score++;
-            this.scoreText.setText('Gems: ' + this.score);
-            tile.layer.tilemapLayer.removeTileAt(tile.x, tile.y);
-        }
-    }
-
-    playerHit(player, tile) {
+    playerHit(player) {
         player.setTint(0xff0000);
         this.physics.pause();
         this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -91,7 +100,7 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    playerWin(player, tile) {
+    playerWin(player) {
         this.physics.pause();
         player.setTint(0x00ff00);
         this.scoreText.setText('YOU WIN! Gems: ' + this.score);
@@ -104,5 +113,7 @@ export default class GameScene extends Phaser.Scene {
 
     update() {
         this.player.update();
+        // Reset triggered tiles for the next frame
+        this.triggeredTiles = {};
     }
 }
