@@ -1,0 +1,14 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a1a; /* A nice dark grey background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden; /* Prevents scrollbars */
+}
+
+canvas {
+    border: 2px solid #333; /* A subtle border around the game */
+}
