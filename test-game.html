@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glimmer - Single File Test</title>
+    
+    <!-- This is the Phaser 3 library -->
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    
+    <!-- This is all the CSS -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- This div is where our game canvas will be inserted -->
+    <div id="game-container"></div>
+    
+    <!-- THIS IS ALL THE JAVASCRIPT FOR THE ENTIRE GAME -->
+    <script>
+
+    // ===== PLAYER CLASS =====
+    class Player extends Phaser.Physics.Arcade.Sprite {
+        constructor(scene, x, y) {
+            super(scene, x, y, 'player', 0);
+            scene.add.existing(this);
+            scene.physics.add.existing(this);
+            this.setBounce(0.1);
+            this.setCollideWorldBounds(true);
+            this.body.setSize(16, 22).setOffset(4, 2);
+            this.jumpCount = 0;
+            this.jumpMax = 2;
+            this.cursors = scene.input.keyboard.createCursorKeys();
+            this.initAnims();
+        }
+
+        initAnims() {
+            if (!this.scene.anims.exists('idle')) {
+                this.scene.anims.create({
+                    key: 'idle',
+                    frames: [{ key: 'player', frame: 0 }],
+                    frameRate: 1,
+                });
+            }
+            if (!this.scene.anims.exists('run')) {
+                this.scene.anims.create({
+                    key: 'run',
+                    frames: this.scene.anims.generateFrameNumbers('player', { frames: [0, 1] }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+        }
+
+        update() {
+            const speed = 250;
+            const onGround = this.body.blocked.down;
+            if (onGround) {
+                this.jumpCount = 0;
+            }
+            if (this.cursors.left.isDown) {
+                this.setVelocityX(-speed);
+                this.setFlipX(true);
+                if (onGround) this.anims.play('run', true);
+            } else if (this.cursors.right.isDown) {
+                this.setVelocityX(speed);
+                this.setFlipX(false);
+                if (onGround) this.anims.play('run', true);
+            } else {
+                this.setVelocityX(0);
+                if (onGround) this.anims.play('idle', true);
+            }
+            const didPressJump = Phaser.Input.Keyboard.JustDown(this.cursors.up);
+            if (didPressJump && this.jumpCount < this.jumpMax) {
+                this.jumpCount++;
+                this.setVelocityY(-350);
+            }
+            if (!onGround) {
+                this.setTexture('player', 1);
+            }
+        }
+    }
+
+    // ===== GAME SCENE =====
+    class GameScene extends Phaser.Scene {
+        constructor() {
+            super({ key: 'GameScene' });
+            this.score = 0;
+            this.triggeredTiles = {};
+        }
+
+        create() {
+            this.add.image(0, 0, 'background').setOrigin(0, 0).setScale(2).setScrollFactor(0.25);
+            
+            const map = this.make.tilemap({
+                data: [
+                    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+                    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,156,-1,-1],
+                    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 2, 3,176,-1,-1],
+                    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,136,-1,-1,-1,-1,-1,-1,154,154,154,-1,-1,-1,-1,-1,-1,-1,-1,21,22,23,176,-1,-1],
+                    [-1,-1,-1,136,-1,-1, 1, 2, 3,-1,-1,-1,-1,-1,-1, 1, 2, 2, 2, 2, 2, 3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,176,-1,-1],
+                    [-1,-1,-1,-1,-1,-1,21,22,23,-1,-1,-1,-1,-1,-1,21,22,22,22,22,22,23,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 2, 3,-1,-1,-1,176,-1,-1],
+                    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,136,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,22,23,-1,-1,-1,176,-1,-1],
+                     [ 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 2, 3,-1,-1,-1,-1,-1,-1,-1,176,-1,-1],
+                    [21,22,22,22,22,22,22,22,22,22,22,22,22,23,-1,-1,-1,-1,154,154,154,-1,-1,-1,-1,-1,-1,21,22,23,-1,-1,-1,-1,-1,-1,-1,176,-1,-1],
+                    [21,22,22,22,22,22,22,22,22,22,22,22,22,23,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,22,23,-1,-1,-1,-1,-1,-1,-1,176,-1,-1]
+                ],
+                tileWidth: 18,
+                tileHeight: 18
+            });
+
+            const tileset = map.addTilesetImage('tiles', 'tiles', 18, 18, 1, 1);
+            const worldLayer = map.createLayer(0, tileset, 0, 0);
+            worldLayer.setScale(2);
+            worldLayer.setCollisionBetween(0, 45);
+
+            this.player = new Player(this, 100, 300);
+            this.player.setScale(2);
+
+            this.scoreText = this.add.text(16, 16, 'Gems: 0', { fontSize: '24px', fill: '#FFF', stroke: '#000', strokeThickness: 4 })
+                .setScrollFactor(0);
+
+            this.physics.add.collider(this.player, worldLayer);
+            map.setTileIndexCallback([136, 154, 156], this.handleTileTrigger, this);
+            this.physics.add.overlap(this.player, worldLayer);
+            
+            this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+            this.cameras.main.setBounds(0, 0, map.widthInPixels * 2, map.heightInPixels * 2);
+        }
+        
+        handleTileTrigger(player, tile) {
+            if (!tile || !tile.layer || this.triggeredTiles[`${tile.x}-${tile.y}`]) return;
+            this.triggeredTiles[`${tile.x}-${tile.y}`] = true;
+
+            switch (tile.index) {
+                case 136: this.collectGem(player, tile); break;
+                case 154: this.playerHit(player); break;
+                case 156: this.playerWin(player); break;
+            }
+        }
+
+        collectGem(player, tile) {
+            this.sound.play('collect-coin', { volume: 0.5 });
+            this.score++;
+            this.scoreText.setText('Gems: ' + this.score);
+            tile.layer.tilemapLayer.removeTileAt(tile.x, tile.y);
+        }
+
+        playerHit(player) {
+            player.setTint(0xff0000);
+            this.physics.pause();
+            this.cameras.main.fadeOut(500, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart());
+        }
+
+        playerWin(player) {
+            this.physics.pause();
+            player.setTint(0x00ff00);
+            this.scoreText.setText('YOU WIN!');
+            this.cameras.main.fade(1000, 255, 255, 255);
+            this.time.delayedCall(2000, () => this.scene.restart());
+        }
+
+        update() {
+            this.player.update();
+            this.triggeredTiles = {};
+        }
+    }
+
+    // ===== PRELOADER SCENE =====
+    class PreloaderScene extends Phaser.Scene {
+        constructor() {
+            super({ key: 'PreloaderScene' });
+        }
+
+        preload() {
+            const progressBar = this.add.graphics();
+            const progressBox = this.add.graphics();
+            progressBox.fillStyle(0x222222, 0.8);
+            progressBox.fillRect(240, 270, 320, 50);
+            this.load.on('complete', () => {
+                progressBar.destroy();
+                progressBox.destroy();
+                this.scene.start('GameScene');
+            });
+            
+            this.load.image('tiles', 'assets/images/tilesets/tiles.png');
+            this.load.image('background', 'assets/images/backgrounds/background.png');
+            this.load.spritesheet('player', 'assets/images/sprites/characters.png', {
+                frameWidth: 24, frameHeight: 24, margin: 1, spacing: 1
+            });
+            this.load.audio('collect-coin', 'assets/audio/sfx/coin.wav');
+        }
+    }
+
+    // ===== GAME CONFIGURATION =====
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: 'game-container',
+        backgroundColor: '#1d212d',
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 800 }
+            }
+        },
+        scene: [PreloaderScene, GameScene]
+    };
+
+    // ===== START THE GAME =====
+    const game = new Phaser.Game(config);
+
+    </script>
+</body>
+</html>
