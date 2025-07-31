@@ -6,7 +6,7 @@ export default class PreloaderScene extends Phaser.Scene {
     }
 
     preload() {
-        // --- Display a loading bar ---
+        // --- Display a loading bar (no changes here) ---
         const progressBar = this.add.graphics();
         const progressBox = this.add.graphics();
         progressBox.fillStyle(0x222222, 0.8);
@@ -33,18 +33,25 @@ export default class PreloaderScene extends Phaser.Scene {
             progressBar.destroy();
             progressBox.destroy();
             loadingText.destroy();
-            this.scene.start('GameScene'); // Start the main game scene
+            this.scene.start('GameScene');
         });
 
         // --- Load All Game Assets ---
 
-        // 1. World Tileset
-        this.load.image('tiles', 'assets/images/tilesets/tiles.png');
+        // ** THE CRITICAL FIX IS HERE **
+        // We must load the world tileset as a SPRITESHEET, not an image,
+        // so Phaser knows how to handle the margin and spacing.
+        this.load.spritesheet('tiles', 'assets/images/tilesets/tiles.png', {
+            frameWidth: 18,
+            frameHeight: 18,
+            margin: 1,
+            spacing: 1
+        });
         
-        // 2. Parallax Background
+        // Parallax Background
         this.load.image('background', 'assets/images/backgrounds/background.png');
 
-        // 3. Player Spritesheet (with margin and spacing fix)
+        // Player Spritesheet
         this.load.spritesheet('player', 'assets/images/sprites/characters.png', {
             frameWidth: 24,
             frameHeight: 24,
@@ -52,7 +59,7 @@ export default class PreloaderScene extends Phaser.Scene {
             spacing: 1
         });
 
-        // 4. Sound Effects
+        // Sound Effects
         this.load.audio('collect-coin', 'assets/audio/sfx/coin.wav');
     }
 }
